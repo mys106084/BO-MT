@@ -1,3 +1,10 @@
 YMiao
 
-BO-MT
+1. Define Objective class
+(1) __init__
+
+(2) map_params
+
+(2) __call__
+
+
