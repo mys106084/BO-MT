@@ -213,12 +213,12 @@ class Alignment(object):
                 self.delta[(s,i,-1)] = prob[l]/normalization
                 #print self.delta[(s,i,-1)]
                 
-        for s in xrange(0,self.sum_s):
+        #for s in xrange(0,self.sum_s):
             #if s%1000 == 0:
             #    print "E-step- Updating Counts - Sentence:"+str(s)
-            m = self.lengths_f[s]
-            l = self.lengths_e[s]
-            for i in xrange(0,m):
+        #    m = self.lengths_f[s]
+        #    l = self.lengths_e[s]
+        #    for i in xrange(0,m):
                 #------------------------UpdateCounts-------------------------------------
                 for j in xrange(0,l):
                     # Count C(e,f)
@@ -254,12 +254,12 @@ class Alignment(object):
                 #nullAlignment
                 self.delta[(s,i,-1)] = prob[l]/normalization
          #---------------------------------------UpdateCounts---------------------------------------       
-        for s in xrange(0,self.sum_s):
+        #for s in xrange(0,self.sum_s):
             #if s%1000 == 0:
             #    print "E-step- Updating Counts - Sentence:"+str(s)
-            m = self.lengths_f[s]
-            l = self.lengths_e[s]
-            for i in xrange(0,m):
+        #    m = self.lengths_f[s]
+        #    l = self.lengths_e[s]
+        #    for i in xrange(0,m):
                 for j in xrange(0,l):
                     # Count C(e,f)
                     self.count_fe[(self.sentences_f[s][i],self.sentences_e[s][j])] += self.GetDelta(s,i,j)
@@ -274,7 +274,6 @@ class Alignment(object):
                 self.count_e[-1] += self.GetDelta(s,i,-1)
                 self.count_jilm[(-1,i,l,m)] += self.GetDelta(s,i,-1)
                 self.count_ilm[(i,l,m)] += self.GetDelta(s,i,-1)
-        fout.close()
     #-----------------------------------------------Decoding-------------------------------------------# 
     # initialise delta
     def EM_IBM1(self):
@@ -298,7 +297,7 @@ class Alignment(object):
     def EM_IBM2(self):
         
         # Initial E-step
-        self.InitT()
+        #self.InitT()
                               
         for self.iter in xrange(0,self.iterations):
             print "EM processing in iteration:"+str(self.iter)

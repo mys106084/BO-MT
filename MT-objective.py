@@ -33,14 +33,35 @@ class IBM2Objective(object):
         print 'Current F1 score:' + str(score)
         return score
         '''
+        
+class FastAlignmentObjective(object):
+    def __init__(self):
+        self.domain = np.transpose(np.array([[0.01, 0.2],[0.0001,0.002],[0.1,20]]))
+        self.ndim = 3
+        
+    def map_params(self, x):
+        params = x.ravel()
+        return params
+    
+    def __call__(self, x):
+        
+        params = self.map_params(x)
+        return runfastAlignment(params)
+
 
 if __name__ == '__main__':
     
-    
+    # IBM2
+    '''
     x0 = np.random.randint(1,20,(20,1))*1.0/1000 
     x1 = np.random.randint(1,20,(20,1))*1.0/10000
     x2 = np.random.randint(1,20,(20,1))*1.0/100
-
+    '''
+    # fastAlignment
+    x0 = np.random.randint(1,20,(20,1))*1.0/1000 
+    x1 = np.random.randint(1,20,(20,1))*1.0/10000
+    x2 = np.random.randint(1,200,(200,1))*1.0/10
+    
     x = np.vstack((x0.T,x1.T,x2.T))
     x = x.T
     
