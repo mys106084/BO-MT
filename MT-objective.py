@@ -1,5 +1,7 @@
 from ImprovedIBM2.IBM2 import *#Alignment
 from ImprovedIBM2.eval_alignment import *
+from fastAlignment.fastAlignment import * #Alignment
+from fastAlignment.eval_alignment import *
 #from Improved import Alignment
 from time import time
 from bo import BO
@@ -19,20 +21,7 @@ class IBM2Objective(object):
         params = self.map_params(x)
         return runIBM2(params)
         
-        '''
-        params = self.map_params(x)
-        x0 = params[0]
-        x1 = params[1]
-        x2 = params[2]
         
-        myAlignment = Alignment(x0,x1,x2)
-        myAlignment.Inputcorpus()
-        myAlignment.EM_IBM2()
-        myAlignment.Dev_IBM2()
-        score =  Objective_fscore(open('data//dev.key'),open('data//dev.out'))
-        print 'Current F1 score:' + str(score)
-        return score
-        '''
         
 class FastAlignmentObjective(object):
     def __init__(self):
@@ -58,14 +47,14 @@ if __name__ == '__main__':
     x2 = np.random.randint(1,20,(20,1))*1.0/100
     '''
     # fastAlignment
-    x0 = np.random.randint(1,20,(20,1))*1.0/1000 
-    x1 = np.random.randint(1,20,(20,1))*1.0/10000
+    x0 = np.random.randint(1,20,(200,1))*1.0/1000 
+    x1 = np.random.randint(1,20,(200,1))*1.0/10000
     x2 = np.random.randint(1,200,(200,1))*1.0/10
     
     x = np.vstack((x0.T,x1.T,x2.T))
     x = x.T
     
-    objective = IBM2Objective()
+    objective = FastAlignmentObjective()
     
     bo = BO(objective, noise=1e-1)
 

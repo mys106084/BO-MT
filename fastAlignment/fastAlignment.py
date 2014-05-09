@@ -20,7 +20,7 @@ class Alignment(object):
         self.url_dev_gold = 'data//dev.key'
 
         
-        self.iterations = 30
+        self.iterations = 10
         self.iter = 0
         self.infinitesimal = 0.0000001
         
@@ -150,6 +150,7 @@ class Alignment(object):
             self.t[(idx_f,idx_e)] = ( self.GetCount_fe(idx_f,idx_e) + self.dirT ) / ( self.GetCount_e(idx_e) + self.dirT*len(self.wordmap_f) )  # dirT
             
     def ComputeLamb(self):
+        '''
         for ii in xrange(0,20):
             self.mod_feat = 0
             for s in xrange(0,self.sum_s):
@@ -172,7 +173,7 @@ class Alignment(object):
                 self.lamb = 150
                 
             print 'Lambda: '+str(self.lamb)
-           
+        '''
     def UpdateCounts(self):
         self.count_e.clear()
         self.count_fe.clear() # define a new counts in every iteration
@@ -331,6 +332,150 @@ class Alignment(object):
                 fout.write(str(s+1)+' '+str(self.alignments_dev[s][i]+1)+' '+str(i+1))
                 fout.write('\n')
         fout.close()
+        
+    def Dev_fscore(self):
+        
+        align_gold = CorpusAlignment()
+        align_gold.fromFile(open(self.url_dev_gold))    # initialise the goldalignment
+        
+        align_test = CorpusAlignment()
+        
+        fin_e = open(self.url_dev_e,'r')
+        for line in fin_e:
+            words = line.strip().split()
+            words_idx = []
+            for word in words:
+                if word not in self.wordmap_e:
+                    words_idx.append(-2)            #-1 is null alignment
+                else:
+                    words_idx.append(self.wordmap_e[word])
+            self.sentences_dev_e.append(words_idx)
+            self.lengths_dev_e.append(len(words_idx))
+            
+        fin_f = open(self.url_dev_f,'r')
+        for line in fin_f:
+            words = line.strip().split()
+            words_idx = []
+            for word in words:
+                if word not in self.wordmap_f:
+                    words_idx.append(-2)
+                else:
+                    words_idx.append(self.wordmap_f[word])        
+            self.sentences_dev_f.append(words_idx)
+            self.lengths_dev_f.append(len(words_idx))
+            
+        # get alignments for dev
+        self.alignments_dev = []
+        for s in xrange(0,len(self.sentences_dev_e)):
+            m = self.lengths_dev_f[s]
+            l = self.lengths_dev_e[s]
+            self.alignments_dev.append([])
+            for i in xrange(0,m):
+                self.alignments_dev[s].append(0)
+                maximum = 0
+                if self.sentences_dev_f[s][i] == -2: #filter the French words which are not in wordmap
+                    self.alignments_dev[s][i] = -1
+                    continue
+                if l==0:            # in case of l==0
+                    continue
+                else:
+                    z = self.GetZ(i,l,m,self.lamb)
+                #print 'TMP prob:'
+                for j in xrange(0,l):    # starts from 1                    
+                    if self.sentences_dev_e[s][j] == -2: #filter the English words which are not in wordmap
+                        continue                    
+                    #tmp = scipy.log(self.GetT(self.sentences_e[s][j],self.sentences_f[s][i]))+scipy.log(self.GetQ_IBM2(j,i,l,m))
+                    tmp = self.GetT(self.sentences_dev_f[s][i],self.sentences_dev_e[s][j])*self.GetQ(j,i,l,m,z)*self.normprob
+                    if tmp  >= maximum:
+                        self.alignments_dev[s][i] = j
+                        maximum = tmp   
+                # nullAlignment
+                # Compare to "null alignemnt probablity"
+                tmp = self.GetT(self.sentences_dev_f[s][i],-1)*self.nullprob # nullAlignment
+                if tmp >= maximum:
+                    self.alignments_dev[s][i] = -1
+                else:
+                    align_test.addAlign(s+1,(self.alignments_dev[s][i]+1,i+1))
+                    
+        fscore = CorpusAlignment.compute_fscore(align_gold, align_test)
+        return fscore.fscore()
+
+
+
+class ParseError(Exception):
+  def __init__(self, value):
+    self.value = value
+    
+  def __str__(self):
+    return self.value
+
+class FScore:
+  "Compute F1-Score based on gold set and test set."
+
+  def __init__(self):
+    self.gold = 0
+    self.test = 0
+    self.correct = 0
+
+  def increment(self, gold_set, test_set):
+    "Add examples from sets."
+    self.gold += len(gold_set)
+    self.test += len(test_set)
+    self.correct += len(gold_set & test_set)
+
+  def fscore(self): 
+    pr = self.precision() + self.recall()
+    if pr == 0: return 0.0
+    return (2 * self.precision() * self.recall()) / pr
+
+  def precision(self): 
+    if self.test == 0: return 0.0
+    return self.correct / self.test
+
+  def recall(self): 
+    if self.gold == 0: return 0.0
+    return self.correct / self.gold    
+
+  @staticmethod
+  def output_header():
+    "Output a scoring header."
+    print "%10s  %10s  %10s  %10s   %10s"%(
+      "Type", "Total", "Precision", "Recall", "F1-Score")
+    print "==============================================================="
+
+  def output_row(self, name):
+    "Output a scoring row."
+    print "%10s        %4d     %0.3f        %0.3f        %0.3f"%(
+      name, self.gold, self.precision(), self.recall(), self.fscore())    
+    
+class CorpusAlignment:
+  "Read in the alignment."
+  def __init__(self):
+    self.all_align = set()
+    self.sents_align = {}
+  def addAlign(self,sent,align):
+    self.all_align.add((sent, align))
+  def fromFile(self, handle):  
+    for l in handle:
+      t = l.strip().split()
+      if len(t) != 3: 
+        raise ParseError("Alignment must have three columns. %s"%l)
+      try:
+        sent = int(t[0])
+        align = (int(t[1]), int(t[2]))
+        self.all_align.add((sent, align))
+      except:
+        raise ParseError("Alignment line must be integers. %s"%l)
+    
+  @staticmethod
+  def compute_fscore(align1, align2):
+    fscore = FScore()
+    fscore.increment(align1.all_align, align2.all_align)
+    return fscore    
+    
+    
+    
+    
     #-----------------------------------------------FastAlignementComputing-------------------------------------------#
 #@staticmethod
 def Feature(i,j,l,m):
@@ -385,13 +530,12 @@ def runfastAlignment(arg):
     myAlignment = Alignment(float(arg[0]),float(arg[1]),float(arg[2]))
     myAlignment.Inputcorpus()
     #print min(myAlignment.lengths_e)
-    
-    
     myAlignment.EM()
-    myAlignment.DEV()
+    
+    score = myAlignment.Dev_fscore()
     print "total run time:"
     print time()-t
-    return 1
+    return score
     
 
 if __name__ == "__main__":
