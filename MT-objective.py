@@ -6,6 +6,9 @@ from fastAlignment.eval_alignment import *
 from time import time
 from bo import BO
 import numpy as np
+import os
+import sys
+import subprocess
 
 class IBM2Objective(object):
     def __init__(self):
@@ -38,6 +41,51 @@ class FastAlignmentObjective(object):
         return runfastAlignment(params)
 
 
+class CdecObjective(object):
+    def __init__(self):
+        self.domain = np.transpose(np.array([[0.01, 0.2],[0.0001,0.002]]))
+        self.ndim = 2
+        
+    def map_params(self, x):
+        params = x.ravel()
+        return params
+    
+    def __call__(self, x):   
+        params = self.map_params(x)
+        print str(params[0])+ ' ' +str(params[1])
+        
+        
+        pipe_in,pipe_out,pipe_err= os.popen3('/home/brian/workspace/cdec/word-aligner/fast_align -i /home/brian/workspace/cdec/training.es-en -d -v -o -H -x /home/brian/workspace/cdec/test.es-en'+
+                      ' -prob_align_null '+str(params[0]) +' -a '+str(params[1]) , 'wr' )
+        '''
+        
+        p = subprocess.Popen('/home/brian/workspace/cdec/word-aligner/fast_align -i /home/brian/workspace/cdec/training.es-en -d -v -o -H -x /home/brian/workspace/cdec/test.es-en'+
+                      ' -prob_align_null '+str(params[0]) +' -a '+str(params[1]) ,stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+        (pipe_in,pipe_out,pipe_err)=(p.stdin, p.stdout, p.stderr)
+        '''
+        line = ''
+        elements = []
+        while 1:
+            line = pipe_err.readline()
+            if '' == line:
+                break
+            elements = line.split()
+            #print "BO INFO: "+ line
+        # TOTAL LOG PROB -18901.8
+        
+        
+        score = 0
+        if elements[len(elements)-1]=='-inf':
+            score = -9999999
+        else:
+            score = float(elements[len(elements)-1])
+                
+        print 'Result Likelihood:'+str(score)
+        
+        #score -1000
+        return score
+    
+    
 if __name__ == '__main__':
     
     # IBM2
@@ -45,16 +93,21 @@ if __name__ == '__main__':
     x0 = np.random.randint(1,20,(20,1))*1.0/1000 
     x1 = np.random.randint(1,20,(20,1))*1.0/10000
     x2 = np.random.randint(1,20,(20,1))*1.0/100
-    '''
+    
     # fastAlignment
     x0 = np.random.randint(1,20,(200,1))*1.0/1000 
     x1 = np.random.randint(1,20,(200,1))*1.0/10000
     x2 = np.random.randint(1,200,(200,1))*1.0/10
+    '''
+    #cdec
+    x0 = np.random.randint(1,20,(200,1))*1.0/1000 
+    x1 = np.random.randint(1,20,(200,1))*1.0/10000
     
-    x = np.vstack((x0.T,x1.T,x2.T))
+    #x = np.vstack((x0.T,x1.T,x2.T))
+    x = np.vstack((x0.T,x1.T))
     x = x.T
     
-    objective = FastAlignmentObjective()
+    objective = CdecObjective()
     
     bo = BO(objective, noise=1e-1)
 
