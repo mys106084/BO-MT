@@ -43,8 +43,8 @@ class FastAlignmentObjective(object):
 
 class CdecObjective(object):
     def __init__(self):
-        self.domain = np.transpose(np.array([[0.01, 0.2],[0.0001,0.002]]))
-        self.ndim = 2
+        self.domain = np.transpose(np.array([[0.01, 0.2],[0.0001,0.002],[0.1,20]]))
+        self.ndim = 3
         
     def map_params(self, x):
         params = x.ravel()
@@ -52,11 +52,11 @@ class CdecObjective(object):
     
     def __call__(self, x):   
         params = self.map_params(x)
-        print str(params[0])+ ' ' +str(params[1])
+        print str(params[0])+ ' ' +str(params[1]) + ' ' +str(params[2])
         
         
-        pipe_in,pipe_out,pipe_err= os.popen3('/home/brian/workspace/cdec/word-aligner/fast_align -i /home/brian/workspace/cdec/training.es-en -d -v -o -H -x /home/brian/workspace/cdec/test.es-en'+
-                      ' -prob_align_null '+str(params[0]) +' -a '+str(params[1]) , 'wr' )
+        pipe_in,pipe_out,pipe_err= os.popen3('/home/brian/workspace/cdec/word-aligner/fast_align -i /home/brian/workspace/cdec/training.es-en -d -v -H -x /home/brian/workspace/cdec/test.es-en'+
+                      ' -prob_align_null '+str(params[0]) +' -a '+str(params[1]) + ' -T ' + str(params[2]) , 'wr' )
         '''
         
         p = subprocess.Popen('/home/brian/workspace/cdec/word-aligner/fast_align -i /home/brian/workspace/cdec/training.es-en -d -v -o -H -x /home/brian/workspace/cdec/test.es-en'+
@@ -102,9 +102,10 @@ if __name__ == '__main__':
     #cdec
     x0 = np.random.randint(1,20,(200,1))*1.0/1000 
     x1 = np.random.randint(1,20,(200,1))*1.0/10000
+    x2 = np.random.randint(1,200,(200,1))*1.0/10
     
-    #x = np.vstack((x0.T,x1.T,x2.T))
-    x = np.vstack((x0.T,x1.T))
+    x = np.vstack((x0.T,x1.T,x2.T))
+    #x = np.vstack((x0.T,x1.T))
     x = x.T
     
     objective = CdecObjective()
